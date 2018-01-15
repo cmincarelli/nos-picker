@@ -1,0 +1,27 @@
+{
+  "name": "nospicker-vue",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "prebuild": "rm -rf dist",
+    "build": "webpack",
+    "postbuild": "cp manifest.json dist/ | cp -r src/assets dist/ | cp src/index.html dist/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chrome": "^0.0.58",
+    "css-loader": "^0.28.8",
+    "ts-loader": "^3.2.0",
+    "typescript": "^2.6.2",
+    "vue": "^2.5.13",
+    "vue-loader": "^13.7.0",
+    "vue-template-compiler": "^2.5.13",
+    "webpack": "^3.10.0"
+  },
+  "dependencies": {
+    "optimal-select": "^4.0.1"
+  }
+}

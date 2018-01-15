@@ -1,0 +1,49 @@
+{
+  "manifest_version": 2,
+  "name": "No's Picker Tool",
+  "version": "0.0.1",
+  "author": "http://nospicker.io",
+  "background": {
+    "persistent": true,
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "browser_action": {
+    "default_icon": "assets/images/38.png",
+    "default_popup": "index.html"
+  },
+  "content_scripts": [
+    {
+      "css": [
+        "assets/css/styles.css"
+      ],
+      "js": [
+        "foreground.js"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' https://ssl.google-analytics.com; object-src 'self'",
+  "description": "",
+  "homepage_url": "http://nospicker.io",
+  "icons": {
+    "128": "assets/images/128.png",
+    "38": "assets/images/38.png",
+    "48": "assets/images/48.png"
+  },
+  "permissions": [
+    "http://*/",
+    "https://*/",
+    "tabs",
+    "declarativeContent",
+    "notifications"
+  ],
+  "web_accessible_resources": [
+    "*"
+  ]
+}

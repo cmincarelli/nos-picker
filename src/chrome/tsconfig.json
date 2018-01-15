@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+
+    "target": "es5",
+    "module": "es2015",
+    "sourceMap": true,
+    "outDir": "../../dist/chrome",
+    "strict": true,
+    "noImplicitReturns": true,
+    "moduleResolution": "node"
+  },
+  "lib": [
+    "chrome",
+    "dom"
+  ],
+  "files": [
+    "background.ts",
+    "foreground.ts"
+  ]
+}

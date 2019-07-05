@@ -28,10 +28,12 @@ export class NosPickerEvents {
         'mouseout': [],
         'click': [],
         'keydown_27': [],
+        'keydown_32': [],
         'keydown_37': [],
         'keydown_38': [],
         'keydown_39': [],
         'keydown_40': [],
+        'keyup_32': [],
     };
 
     constructor() {
@@ -55,27 +57,38 @@ export class NosPickerEvents {
         }
 
         this.options = passiveSupported ? { passive: false } : false;
-
-        this.addHandler('mouseover', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.INIT, this.mouseoverAddBorder.bind(this));
-        this.addHandler('mouseout', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.INIT, this.mouseooutRemoveBorder.bind(this));
-
-        this.addHandler('click', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.INIT, this.clickSelectElement.bind(this));
+        // CLICK
+        this.addHandler('click', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.INIT, this.clickSelectSingleElement.bind(this));
+        this.addHandler('click', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.INIT, this.progressApplicationState.bind(this));
         this.addHandler('click', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.preventDefault.bind(this));
 
-        this.addHandler('keydown_27', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.INIT, this.destroyApplication.bind(this));
+        this.addHandler('click', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.INIT, this.clickSelectSingleElement.bind(this));
+        this.addHandler('click', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.INIT, this.progressApplicationState.bind(this));
+        this.addHandler('click', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.clickSelectSingleElement.bind(this));
+
+        // SPACE
+        this.addHandler('keydown_32', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.highlightSelected.bind(this));
+        this.addHandler('keyup_32', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.unlightSelected.bind(this));
+
+        this.addHandler('keydown_32', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.highlightSelected.bind(this));
+        this.addHandler('keyup_32', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.unlightSelected.bind(this));
+
+        // ESC
         this.addHandler('keydown_27', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.resetApplicationState.bind(this));
 
+        this.addHandler('keydown_27', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.INIT, this.resetApplicationState.bind(this));
+        this.addHandler('keydown_27', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.releaseCurrentElement.bind(this));
+
+        // ARROWS
         this.addHandler('keydown_37', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.setPreviousElement.bind(this));
         this.addHandler('keydown_38', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.setParentElement.bind(this));
         this.addHandler('keydown_39', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.setNextElement.bind(this));
         this.addHandler('keydown_40', NOS_PICKER_MODE.SINGLE, NOS_PICKER_STATE.SELECTED, this.setChildElement.bind(this));
 
-        (<NosCustomEventListener>document.addEventListener)('nos-event', (e) => {
-            const eventType = `${e.detail.event.type}${e.detail.keyCode ? '_' + e.detail.keyCode : ''}${e.detail.metaKey ? '_' + e.detail.metaKey : ''}`;
-            const mode = e.detail.mode;
-            const state = e.detail.state;
-            this.delegateEvent(eventType, this.pickerMode, this.pickerState, e.detail.event);
-        });
+        this.addHandler('keydown_37', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.setPreviousElement.bind(this));
+        this.addHandler('keydown_38', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.setParentElement.bind(this));
+        this.addHandler('keydown_39', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.setNextElement.bind(this));
+        this.addHandler('keydown_40', NOS_PICKER_MODE.MULTI, NOS_PICKER_STATE.SELECTED, this.setChildElement.bind(this));
     }
 
     setPickerMode(mode: NOS_PICKER_MODE) {
@@ -94,78 +107,50 @@ export class NosPickerEvents {
         return this.pickerState;
     }
 
-    setElementBorder(element: NosHTMLElement, color: string): void {
-        console.log('setElementBorder', element);
-        if ('undefined' === typeof element.style_outline) {
-            element.style_outline = element.style.outline;
-            element.style.outline = '3px solid ' + color;
-        }
-    }
-
-    unsetElementBorder(element: NosHTMLElement): void {
-        console.log('unsetElementBoarder', element);
-        if ('undefined' !== typeof element.style_outline) {
-            element.style.outline = element.style_outline;
-            delete element.style_outline;
-        }
-    }
-
     preventDefault(e: Event): void {
         e.preventDefault();
         //e.stopPropagation();
     }
 
-    mouseoverAddBorder(e: MouseEvent): void {
-        // TODO - not in NOS app window
-        const element = (<NosHTMLElement>e.target);
-        this.setElementBorder(element, 'green');
+    highlightSelected(e: KeyboardEvent): void {
+        this.preventDefault(e);
+        this.capturedElements.forEach(el => {
+            el.style.outline = '2px solid red';
+        });
     }
 
-    mouseooutRemoveBorder(e: MouseEvent): void {
-        const element = (<NosHTMLElement>e.target);
-        this.unsetElementBorder(element);
+    unlightSelected(e: KeyboardEvent): void {
+        this.preventDefault(e);
+        this.capturedElements.forEach(el => {
+            el.style.outline = 'none';
+        });
     }
 
-    clickSelectElement(e: MouseEvent): void {
+    clickSelectSingleElement(e: MouseEvent): void {
         this.preventDefault(e);
         const element = (<NosHTMLElement>e.target);
-        this.unsetElementBorder(element);
-        this.setElementBackground(element, 'red');
         this.capturedElements.push(element);
-        this.pickerState = NOS_PICKER_STATE.SELECTED;
-        this.trigger('stateChange', this.pickerState);
         this.currentElement = element;
         this.trigger('captureCurrentElement', element);
     }
 
-    setElementBackground(element: NosHTMLElement, color: string): void {
-        console.log('setElementBackground', element);
-        if (!element.style_backgroundColor) {
-            element.style_backgroundColor = element.style.backgroundColor ? element.style.backgroundColor : false;
-        }
-        element.style.backgroundColor = color;
-    }
-
-    unsetElementBackground(element: NosHTMLElement): void {
-        console.log('unsetElementBackground', element);
-        if (element.style_backgroundColor) {
-            // style_backgroundColor will be `string` if there was a style originally
-            element.style.backgroundColor = element.style_backgroundColor;
-        } else {
-            // style_backgroundColor will be `false` if there was no style originally
-            element.style.backgroundColor = '';
-        }
-        delete element.style_backgroundColor;
+    clickSelectMultiElement(e: MouseEvent): void {
+        this.preventDefault(e);
+        const element = (<NosHTMLElement>e.target);
+        this.capturedElements.push(element);
+        this.currentElement = element;
+        console.log('clickSelectMultiElement', element);
+        this.trigger('captureCurrentElement', element);
     }
 
     releaseCurrentElement(): void {
         if (this.capturedElements.length) {
             const idx: number = this.capturedElements.length - 1;
             const element: NosHTMLElement = this.capturedElements[idx];
-            console.log('releaseCurrentElement', element);
             this.trigger('releaseCurrentElement');
-            this.unsetElementBackground(element);
             this.capturedElements.splice(idx, 1);
+        } else {
+            this.regressApplicationState();
         }
     }
 
@@ -174,6 +159,22 @@ export class NosPickerEvents {
             this.preventDefault(e);
         }
         this.trigger('destroy');
+    }
+
+    regressApplicationState(e?: KeyboardEvent): void {
+        if (e) {
+            this.preventDefault(e);
+        }
+        --this.pickerState;
+        this.trigger('stateChange', this.pickerState);
+    }
+
+    progressApplicationState(e?: KeyboardEvent): void {
+        if (e) {
+            this.preventDefault(e);
+        }
+        ++this.pickerState;
+        this.trigger('stateChange', this.pickerState);
     }
 
     resetApplicationState(e?: KeyboardEvent): void {
@@ -195,12 +196,10 @@ export class NosPickerEvents {
             const element: NosHTMLElement = this.capturedElements[idx];
             const parent = element.parentElement;
             console.log('setParentElement', element, parent);
-            //const parent = element.parentElement;
             if (parent) {
                 this.releaseCurrentElement();
                 this.currentElement = parent;
                 this.trigger('captureCurrentElement', this.currentElement);
-                this.setElementBackground(this.currentElement, 'red');
                 this.capturedElements.push(this.currentElement);
             }
         }
@@ -212,13 +211,10 @@ export class NosPickerEvents {
             const idx: number = this.capturedElements.length - 1;
             const element: NosHTMLElement = this.capturedElements[idx];
             const child = <HTMLElement>element.children[0];
-            console.log('setChildElement', element, child);
-            //const parent = element.parentElement;
             if (child) {
                 this.releaseCurrentElement();
                 this.currentElement = child;
                 this.trigger('captureCurrentElement', this.currentElement);
-                this.setElementBackground(this.currentElement, 'red');
                 this.capturedElements.push(this.currentElement);
             }
         }
@@ -230,13 +226,10 @@ export class NosPickerEvents {
             const idx: number = this.capturedElements.length - 1;
             const element: NosHTMLElement = this.capturedElements[idx];
             const sibling = <HTMLElement>element.nextElementSibling;
-            console.log('setPreviousElement', element, sibling);
-            //const parent = element.parentElement;
             if (sibling) {
                 this.releaseCurrentElement();
                 this.currentElement = sibling;
                 this.trigger('captureCurrentElement', this.currentElement);
-                this.setElementBackground(this.currentElement, 'red');
                 this.capturedElements.push(this.currentElement);
             }
         }
@@ -248,20 +241,23 @@ export class NosPickerEvents {
             const idx: number = this.capturedElements.length - 1;
             const element: NosHTMLElement = this.capturedElements[idx];
             const sibling = <HTMLElement>element.previousElementSibling;
-            console.log('setPreviousElement', element, sibling);
-            //const parent = element.parentElement;
             if (sibling) {
                 this.releaseCurrentElement();
                 this.currentElement = sibling;
                 this.trigger('captureCurrentElement', this.currentElement);
-                this.setElementBackground(this.currentElement, 'red');
                 this.capturedElements.push(this.currentElement);
             }
         }
     }
 
     delegateEvent(type: string, mode: NOS_PICKER_MODE, state: NOS_PICKER_STATE, event: NosKeyboardEventListener | NosMouseEventListener): void {
-        console.log(arguments);
+        const appElement: NosHTMLElement | null = document.getElementById('nos-app');
+        if (appElement) {
+            if ('hidden' === window.getComputedStyle(appElement).getPropertyValue('border-top-style')) {
+                return;
+            }
+        }
+        console.log('delegateEvent', type, mode, state, event);
         if (this.eventsHandlers[type]
             && this.eventsHandlers[type][mode]
             && this.eventsHandlers[type][mode][state]) {
@@ -280,6 +276,7 @@ export class NosPickerEvents {
                 event: e,
                 mode: this.pickerMode,
                 state: this.pickerState,
+                metaKey: e.metaKey,
             },
             bubbles: false,
             cancelable: false
@@ -302,6 +299,13 @@ export class NosPickerEvents {
         document.dispatchEvent(event);
     }
 
+    handleCustomEvent(e: CustomEvent): void {
+        const eventType = `${e.detail.event.type}${e.detail.keyCode ? '_' + e.detail.keyCode : ''}${e.detail.metaKey ? '_' + e.detail.metaKey : ''}`;
+        const mode = e.detail.mode;
+        const state = e.detail.state;
+        this.delegateEvent(eventType, this.pickerMode, this.pickerState, e.detail.event);
+    }
+
     addHandler(type: string, mode: NOS_PICKER_MODE, state: NOS_PICKER_STATE, handler: (e: any) => void): void {
         this.eventsHandlers[type][mode] = this.eventsHandlers[type][mode] || [];
         this.eventsHandlers[type][mode][state] = this.eventsHandlers[type][mode][state] || [];
@@ -309,19 +313,24 @@ export class NosPickerEvents {
     }
 
     start() {
-        console.log('start');
+        document.body.className = document.body.className + ' nos-active';
+        (document.addEventListener as NosCustomEventListener)('nos-event', this.handleCustomEvent.bind(this));
+
         (document.addEventListener as NosMouseEventListener)('mouseover', this.handleNosMouseEvent, this.options);
         (document.addEventListener as NosMouseEventListener)('mouseout', this.handleNosMouseEvent, this.options);
         (document.addEventListener as NosKeyboardEventListener)('keydown', this.handleNosKeyboardEvent, this.options);
+        (document.addEventListener as NosKeyboardEventListener)('keyup', this.handleNosKeyboardEvent, this.options);
         (document.addEventListener as NosMouseEventListener)('click', this.handleNosMouseEvent, this.options);
     }
 
     stop() {
-        console.log('stop');
+        (document.removeEventListener as NosCustomEventListener)('nos-event', this.handleCustomEvent.bind(this));
+
         (document.removeEventListener as NosMouseEventListener)('mouseover', this.handleNosMouseEvent, this.options);
         (document.removeEventListener as NosMouseEventListener)('mouseout', this.handleNosMouseEvent, this.options);
         (document.removeEventListener as NosKeyboardEventListener)('keydown', this.handleNosKeyboardEvent, this.options);
         (document.removeEventListener as NosMouseEventListener)('click', this.handleNosMouseEvent, this.options);
+
         this.resetApplicationState();
     }
 
@@ -334,11 +343,9 @@ export class NosPickerEvents {
 
     trigger(type: string, payload?: any): void {
         if ('undefined' === typeof this.triggers[type]) {
-            console.log('trigger called but none present');
             return;
         }
         this.triggers[type].forEach((trigger) => {
-            console.log('trigger', type, payload);
             trigger(payload);
         })
     }

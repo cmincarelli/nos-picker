@@ -6,8 +6,7 @@
   "scripts": {
     "prebuild": "rm -rf dist",
     "build": "webpack",
-    "postbuild": "cp manifest.json dist/ | cp -r src/assets dist/ | cp src/index.html dist/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postbuild": "cp manifest.json dist/ | cp -r src/assets dist/ | cp src/index.html dist/"
   },
   "author": "",
   "license": "ISC",
